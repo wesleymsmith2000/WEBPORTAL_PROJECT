@@ -1,0 +1,20 @@
+A Veil of Void and Fire — Act 1 Episode 1 — Batch 01_B Art Inbox
+
+Purpose:
+Insert these transition assets between Batch 1 ship/bridge arrival art and Batch 2 lost-child / resonance incident art.
+
+Files:
+- act-01-episode-01-panel-004_1-asterion-port-beneath-stars-clean.png
+  Behold Mode: first grand transition into Asterion Jump Port / the port beneath the stars.
+
+- act-01-episode-01-panel-004_2-arrival-concourse-first-mixing-clean.png
+  Witness Mode: arrival concourse, first mixing of the Halcyon and Jewel groups, adults and students converging.
+
+- act-01-episode-01-panel-004_3-collatz-concourse-holo-wall-clean.png
+  Witness Mode: Collatz-Concourse race segue, Hu/Keru strategic contrast, Xue Hu/Mister Minkowski observation, Nokose/Nashoba beginning to hear the tapping underneath the race.
+
+Naming convention:
+act-01-episode-01-panel-###_sub-scene-name-clean.png
+
+Batch label:
+act-01-episode-01-batch-01_B-art-inbox.zip
