@@ -1,0 +1,80 @@
+---
+interface Props {
+  href: string;
+  title: string;
+  subtitle?: string;
+  summary: string;
+  image: string;
+  meta: string;
+}
+
+const { href, title, subtitle, summary, image, meta } = Astro.props;
+---
+
+<article class="episode-card">
+  <a href={href}>
+    <img src={image} alt="" loading="lazy" />
+    <div>
+      <p>{meta}</p>
+      <h2>{title}</h2>
+      {subtitle && <span>{subtitle}</span>}
+      <small>{summary}</small>
+    </div>
+  </a>
+</article>
+
+<style>
+  .episode-card {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+  }
+
+  a {
+    display: grid;
+    min-height: 100%;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  div {
+    padding: 1rem;
+  }
+
+  p {
+    margin: 0 0 0.4rem;
+    color: var(--cyan);
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.7rem;
+    line-height: 1.05;
+  }
+
+  span,
+  small {
+    display: block;
+    color: var(--muted);
+  }
+
+  span {
+    margin-top: 0.25rem;
+  }
+
+  small {
+    margin-top: 0.7rem;
+    font-size: 0.96rem;
+  }
+</style>

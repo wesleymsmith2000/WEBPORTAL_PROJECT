@@ -1,0 +1,132 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { featuredProjects } from "../../content/projects";
+---
+
+<BaseLayout
+  title="Worlds"
+  description="A project gateway for The Veil Remembers universe, connected games, lore branches, and media."
+>
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">Project gateway</p>
+      <h1 class="section-title">Worlds connected to the archive.</h1>
+      <p class="lede">
+        The webtoon remains the primary portal experience. This gateway keeps companion
+        games, lore branches, ciphers, music, and video links organized from one shared registry.
+      </p>
+      <div class="button-row">
+        <a class="button primary" href="/read/">Return to the reader</a>
+        <a class="button" href="/watch/">Watch media</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section compact">
+    <div class="container project-grid">
+      {
+        featuredProjects.map((project) => (
+          <article class="project-card">
+            <a class="cover-link" href={`/projects/${project.id}/`} aria-label={`Open ${project.title}`}>
+              <img src={project.coverImage} alt="" loading="lazy" />
+            </a>
+            <div class="project-copy">
+              <p class="meta">{project.type}</p>
+              <h2>
+                <a href={`/projects/${project.id}/`}>{project.title}</a>
+              </h2>
+              <p class="subtitle">{project.subtitle}</p>
+              <p>{project.description}</p>
+              <div class="status-row">
+                <span>{project.status}</span>
+                {project.repoReference && <span>{project.repoReference}</span>}
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .project-card {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(17, 21, 28, 0.76);
+  }
+
+  .cover-link {
+    display: block;
+    aspect-ratio: 16 / 10;
+    background: var(--panel);
+  }
+
+  .cover-link img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .project-copy {
+    padding: 1.1rem;
+  }
+
+  .meta,
+  .subtitle,
+  .project-copy p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .meta {
+    color: var(--cyan);
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 0.35rem 0;
+    font-size: 1.35rem;
+    line-height: 1.15;
+  }
+
+  h2 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  h2 a:hover,
+  h2 a:focus-visible {
+    color: var(--gold);
+  }
+
+  .subtitle {
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+  }
+
+  .status-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .status-row span {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.32rem 0.6rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+</style>

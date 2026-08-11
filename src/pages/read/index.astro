@@ -1,0 +1,39 @@
+---
+import { getCollection } from "astro:content";
+import EpisodeCard from "@components/EpisodeCard.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+
+const episodes = (await getCollection("episodes")).sort(
+  (a, b) => a.data.act - b.data.act || a.data.episode - b.data.episode,
+);
+---
+
+<BaseLayout title="Read">
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">Episode index</p>
+      <h1 class="section-title">Read the archive</h1>
+      <p class="lede">
+        Acts and episodes are generated from markdown content, keeping story data separate
+        from the reader interface.
+      </p>
+    </div>
+  </section>
+
+  <section class="section compact">
+    <div class="container grid">
+      {
+        episodes.map((episode) => (
+          <EpisodeCard
+            href={`/read/${episode.slug}/`}
+            title={episode.data.title}
+            subtitle={episode.data.subtitle}
+            summary={episode.data.summary}
+            image={episode.data.heroImage}
+            meta={`Act ${episode.data.act} / Episode ${episode.data.episode}`}
+          />
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

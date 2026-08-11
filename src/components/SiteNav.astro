@@ -1,0 +1,111 @@
+---
+const links = [
+  { href: "/", label: "Home" },
+  { href: "/read/", label: "Read" },
+  { href: "/listen/", label: "Listen" },
+  { href: "/watch/", label: "Watch" },
+  { href: "/projects/", label: "Worlds" },
+  { href: "/archives/", label: "Archives" },
+  { href: "/games/", label: "Games" },
+  { href: "/about/", label: "About" },
+];
+---
+
+<header class="site-header">
+  <nav class="container nav" aria-label="Primary">
+    <a class="brand" href="/" aria-label="AVVF Canon Portal home">
+      <span class="mark" aria-hidden="true"></span>
+      <span>
+        <strong>AVVF</strong>
+        <small>Canon Portal</small>
+      </span>
+    </a>
+    <div class="links">
+      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+    </div>
+  </nav>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--line);
+    background: rgba(8, 9, 13, 0.86);
+    backdrop-filter: blur(18px);
+  }
+
+  .nav {
+    display: flex;
+    min-height: 70px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .brand strong,
+  .brand small {
+    display: block;
+    line-height: 1.05;
+  }
+
+  .brand small {
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+
+  .mark {
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(210, 170, 99, 0.7);
+    border-radius: 50%;
+    background:
+      linear-gradient(135deg, rgba(210, 170, 99, 0.9), transparent 48%),
+      linear-gradient(315deg, rgba(113, 184, 199, 0.8), transparent 50%),
+      #11151c;
+  }
+
+  .links {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    overflow-x: auto;
+  }
+
+  .links a {
+    border-radius: 8px;
+    padding: 0.55rem 0.7rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .links a:hover,
+  .links a:focus-visible {
+    background: rgba(245, 239, 227, 0.08);
+    color: var(--text);
+  }
+
+  @media (max-width: 780px) {
+    .nav {
+      align-items: flex-start;
+      flex-direction: column;
+      padding-block: 0.8rem;
+    }
+
+    .links {
+      width: 100%;
+      padding-bottom: 0.2rem;
+    }
+  }
+</style>

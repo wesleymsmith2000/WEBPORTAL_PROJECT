@@ -1,0 +1,252 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { projects } from "../../content/projects";
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { id: project.id },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const featuredMedia = project.media.filter((item) => item.featured);
+const remainingMedia = project.media.filter((item) => !item.featured);
+const mediaItems = [...featuredMedia, ...remainingMedia];
+---
+
+<BaseLayout title={project.title} description={project.description}>
+  <section class="project-hero">
+    <div class="container hero-grid">
+      <div>
+        <p class="eyebrow">{project.type}</p>
+        <h1>{project.title}</h1>
+        <p class="subtitle">{project.subtitle}</p>
+        <p class="lede">{project.description}</p>
+        <div class="button-row">
+          {
+            project.internalRoute && (
+              <a class="button primary" href={project.internalRoute}>
+                Open project area
+              </a>
+            )
+          }
+          {
+            project.externalUrl && (
+              <a class="button primary" href={project.externalUrl}>
+                Open external project
+              </a>
+            )
+          }
+          <a class="button" href="/projects/">All worlds</a>
+        </div>
+      </div>
+      <img src={project.coverImage} alt="" loading="eager" />
+    </div>
+  </section>
+
+  <section class="section compact">
+    <div class="container detail-grid">
+      <article class="card">
+        <h2>Status</h2>
+        <p>{project.status}</p>
+      </article>
+      {
+        project.repoReference && (
+          <article class="card">
+            <h2>Project Reference</h2>
+            <p>{project.repoReference}</p>
+          </article>
+        )
+      }
+    </div>
+  </section>
+
+  <section class="section compact">
+    <div class="container split">
+      <div>
+        <p class="eyebrow">Links</p>
+        <h2 class="section-heading">Jump points</h2>
+      </div>
+      <div class="link-list">
+        {
+          project.links.map((link) =>
+            link.kind === "local" ? (
+              <div class="link-item reference">
+                <span>{link.label}</span>
+                <small>{link.url}</small>
+              </div>
+            ) : (
+              <a class="link-item" href={link.url}>
+                <span>{link.label}</span>
+                <small>{link.url}</small>
+              </a>
+            ),
+          )
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section compact">
+    <div class="container split">
+      <div>
+        <p class="eyebrow">Media</p>
+        <h2 class="section-heading">YouTube and Suno</h2>
+      </div>
+      {
+        mediaItems.length > 0 ? (
+          <div class="media-list">
+            {mediaItems.map((item) => (
+              <a class="media-item" href={item.url}>
+                {item.thumbnail && <img src={item.thumbnail} alt="" loading="lazy" />}
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.platform}</small>
+                  {item.description && <em>{item.description}</em>}
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p class="empty-state">
+            Media links can be attached to this project from the shared registry as YouTube,
+            Suno, or other entries.
+          </p>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .project-hero {
+    padding: 56px 0 32px;
+  }
+
+  .hero-grid {
+    display: grid;
+    align-items: center;
+    grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+    gap: clamp(1.5rem, 5vw, 4rem);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.8rem, 8vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: 0;
+  }
+
+  .subtitle {
+    max-width: 620px;
+    margin: 0.8rem 0 0.7rem;
+    color: var(--text);
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+    font-weight: 700;
+  }
+
+  .hero-grid img {
+    width: 100%;
+    max-height: 62vh;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    object-fit: cover;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .section-heading {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    line-height: 1;
+  }
+
+  .link-list,
+  .media-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .link-item,
+  .media-item {
+    display: grid;
+    gap: 0.25rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.9rem;
+    background: rgba(17, 21, 28, 0.76);
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .link-item:hover,
+  .link-item:focus-visible,
+  .media-item:hover,
+  .media-item:focus-visible {
+    border-color: rgba(210, 170, 99, 0.72);
+  }
+
+  .link-item.reference {
+    color: var(--text);
+  }
+
+  .link-item small,
+  .media-item small,
+  .media-item em,
+  .empty-state {
+    color: var(--muted);
+  }
+
+  .media-item {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
+  .media-item img {
+    width: 96px;
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+
+  .media-item span {
+    display: grid;
+  }
+
+  .media-item em {
+    font-style: normal;
+  }
+
+  .empty-state {
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1rem;
+    background: rgba(17, 21, 28, 0.56);
+  }
+
+  @media (max-width: 820px) {
+    .hero-grid,
+    .split {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-grid img {
+      max-height: none;
+    }
+  }
+</style>

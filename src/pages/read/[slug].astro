@@ -1,0 +1,580 @@
+---
+import { getCollection } from "astro:content";
+import AudioDock from "@components/AudioDock.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const episodes = await getCollection("episodes");
+  return episodes.map((episode) => ({
+    params: { slug: episode.slug },
+    props: { episode },
+  }));
+}
+
+const { episode } = Astro.props;
+---
+
+<BaseLayout title={episode.data.title} description={episode.data.summary}>
+  <article class="reader dialogue-hover">
+    <header class="episode-hero">
+      <div class="container">
+        <p class="eyebrow">Act {episode.data.act} / Episode {episode.data.episode}</p>
+        <h1>{episode.data.title}</h1>
+        {episode.data.subtitle && <p class="subtitle">{episode.data.subtitle}</p>}
+        <p class="lede">{episode.data.summary}</p>
+        <div class="headphone-note">Put on headphones. Press Play. Begin scrolling.</div>
+      </div>
+      <img src={episode.data.heroImage} alt="" loading="eager" />
+    </header>
+
+    <section class="reader-tools" aria-label="Reader display controls">
+      <div class="dialogue-controls">
+        <label for="dialogue-mode">Dialogue</label>
+        <select id="dialogue-mode" data-dialogue-mode-select>
+          <option value="hover" selected>Hover</option>
+          <option value="on">On</option>
+          <option value="off">Off</option>
+        </select>
+        <label class="edit-toggle">
+          <input type="checkbox" data-bubble-edit-toggle />
+          Edit bubbles
+        </label>
+        <button type="button" data-bubble-export>Export</button>
+        <button type="button" data-bubble-reset>Reset</button>
+      </div>
+    </section>
+
+    <section class="scene-flow" aria-label="Episode scenes">
+        {
+          episode.data.panels.map((panel, index) => (
+            <section class="scene-pair">
+              <figure tabindex={panel.dialogue.length > 0 ? "0" : undefined}>
+                <div class="panel-frame">
+                  <img src={panel.image} alt={panel.alt} loading={index === 0 ? "eager" : "lazy"} />
+                  {panel.dialogue.map((bubble, bubbleIndex) => (
+                    <div
+                      class:list={["dialogue-bubble", bubble.variant, `tail-${bubble.tail}`]}
+                      data-bubble-id={`${index}-${bubbleIndex}`}
+                      data-panel-image={panel.image}
+                      data-speaker={bubble.speaker ?? ""}
+                      data-text={bubble.text}
+                      data-width={bubble.width}
+                      style={`left: ${bubble.x}%; top: ${bubble.y}%; width: ${bubble.width}%;`}
+                    >
+                      {bubble.speaker && <span class="speaker">{bubble.speaker}</span>}
+                      <span>{bubble.text}</span>
+                    </div>
+                  ))}
+                </div>
+                {panel.caption && <figcaption>{panel.caption}</figcaption>}
+              </figure>
+
+              {(panel.proseTitle || panel.prose) && (
+                <div class="scene-prose">
+                  {panel.proseTitle && <h2>{panel.proseTitle}</h2>}
+                  {panel.prose
+                    ?.split(/\n{2,}/)
+                    .filter((paragraph) => paragraph.trim().length > 0)
+                    .map((paragraph) => <p>{paragraph.trim()}</p>)}
+                </div>
+              )}
+            </section>
+          ))
+        }
+    </section>
+
+    <section class="container related">
+      <p class="eyebrow">Related entries</p>
+      <div class="grid">
+        {episode.data.related.map((entry) => <div class="card">{entry}</div>)}
+      </div>
+    </section>
+
+    <AudioDock
+      title={episode.data.soundtrack?.title}
+      src={episode.data.soundtrack?.src}
+      note={episode.data.soundtrack?.note}
+    />
+  </article>
+</BaseLayout>
+
+<script is:inline>
+  (() => {
+    const reader = document.querySelector(".reader");
+    const modeSelect = document.querySelector("[data-dialogue-mode-select]");
+    const editToggle = document.querySelector("[data-bubble-edit-toggle]");
+    const exportButton = document.querySelector("[data-bubble-export]");
+    const resetButton = document.querySelector("[data-bubble-reset]");
+    const storageKey = "avvf-dialogue-mode";
+    const editStorageKey = "avvf-dialogue-edits";
+    const modes = ["hover", "on", "off"];
+    let bubbleEdits = {};
+
+    try {
+      bubbleEdits = JSON.parse(window.localStorage.getItem(editStorageKey) || "{}");
+    } catch {
+      bubbleEdits = {};
+    }
+
+    function applyDialogueMode(mode) {
+      const safeMode = modes.includes(mode) ? mode : "hover";
+
+      reader?.classList.remove("dialogue-hover", "dialogue-on", "dialogue-off");
+      reader?.classList.add(`dialogue-${safeMode}`);
+
+      if (modeSelect instanceof HTMLSelectElement) {
+        modeSelect.value = safeMode;
+      }
+
+      window.localStorage.setItem(storageKey, safeMode);
+    }
+
+    function applyBubbleEdits() {
+      document.querySelectorAll("[data-bubble-id]").forEach((bubble) => {
+        if (!(bubble instanceof HTMLElement)) {
+          return;
+        }
+
+        const edit = bubbleEdits[bubble.dataset.bubbleId || ""];
+        if (edit && Number.isFinite(edit.x) && Number.isFinite(edit.y)) {
+          bubble.style.left = `${edit.x}%`;
+          bubble.style.top = `${edit.y}%`;
+        }
+      });
+    }
+
+    function setEditMode(enabled) {
+      reader?.classList.toggle("bubble-editing", enabled);
+
+      if (editToggle instanceof HTMLInputElement) {
+        editToggle.checked = enabled;
+      }
+    }
+
+    function collectBubblePositions() {
+      return Array.from(document.querySelectorAll("[data-bubble-id]"))
+        .filter((bubble) => bubble instanceof HTMLElement)
+        .map((bubble) => {
+          const element = bubble;
+
+          return {
+            id: element.dataset.bubbleId,
+            panelImage: element.dataset.panelImage,
+            speaker: element.dataset.speaker || undefined,
+            text: element.dataset.text,
+            x: Number.parseFloat(element.style.left),
+            y: Number.parseFloat(element.style.top),
+            width: Number.parseFloat(element.dataset.width || element.style.width),
+          };
+        });
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    if (reader instanceof HTMLElement && modeSelect instanceof HTMLSelectElement) {
+      applyDialogueMode(window.localStorage.getItem(storageKey) || "hover");
+
+      modeSelect.addEventListener("change", () => {
+        applyDialogueMode(modeSelect.value);
+      });
+    }
+
+    applyBubbleEdits();
+
+    if (editToggle instanceof HTMLInputElement) {
+      editToggle.addEventListener("change", () => {
+        setEditMode(editToggle.checked);
+      });
+    }
+
+    document.querySelectorAll("[data-bubble-id]").forEach((bubble) => {
+      if (!(bubble instanceof HTMLElement)) {
+        return;
+      }
+
+      bubble.addEventListener("pointerdown", (event) => {
+        if (!reader?.classList.contains("bubble-editing")) {
+          return;
+        }
+
+        const frame = bubble.closest(".panel-frame");
+        if (!(frame instanceof HTMLElement)) {
+          return;
+        }
+
+        event.preventDefault();
+        bubble.setPointerCapture(event.pointerId);
+        bubble.classList.add("is-dragging");
+
+        const moveBubble = (moveEvent) => {
+          const frameRect = frame.getBoundingClientRect();
+          const x = clamp(((moveEvent.clientX - frameRect.left) / frameRect.width) * 100, 3, 97);
+          const y = clamp(((moveEvent.clientY - frameRect.top) / frameRect.height) * 100, 3, 97);
+          const roundedX = Math.round(x * 10) / 10;
+          const roundedY = Math.round(y * 10) / 10;
+
+          bubble.style.left = `${roundedX}%`;
+          bubble.style.top = `${roundedY}%`;
+          bubbleEdits[bubble.dataset.bubbleId || ""] = { x: roundedX, y: roundedY };
+          window.localStorage.setItem(editStorageKey, JSON.stringify(bubbleEdits));
+        };
+
+        const stopDragging = (upEvent) => {
+          bubble.releasePointerCapture(upEvent.pointerId);
+          bubble.classList.remove("is-dragging");
+          bubble.removeEventListener("pointermove", moveBubble);
+          bubble.removeEventListener("pointerup", stopDragging);
+          bubble.removeEventListener("pointercancel", stopDragging);
+        };
+
+        bubble.addEventListener("pointermove", moveBubble);
+        bubble.addEventListener("pointerup", stopDragging);
+        bubble.addEventListener("pointercancel", stopDragging);
+      });
+    });
+
+    if (exportButton instanceof HTMLButtonElement) {
+      exportButton.addEventListener("click", async () => {
+        const payload = JSON.stringify(collectBubblePositions(), null, 2);
+
+        try {
+          await navigator.clipboard.writeText(payload);
+          exportButton.textContent = "Copied";
+          window.setTimeout(() => {
+            exportButton.textContent = "Export";
+          }, 1400);
+        } catch {
+          window.prompt("Copy bubble coordinates:", payload);
+        }
+      });
+    }
+
+    if (resetButton instanceof HTMLButtonElement) {
+      resetButton.addEventListener("click", () => {
+        bubbleEdits = {};
+        window.localStorage.removeItem(editStorageKey);
+        window.location.reload();
+      });
+    }
+  })();
+</script>
+
+<style>
+  .episode-hero {
+    position: relative;
+    display: grid;
+    min-height: calc(100svh - 70px);
+    align-items: end;
+    overflow: hidden;
+    padding: 120px 0 56px;
+  }
+
+  .episode-hero::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background:
+      linear-gradient(90deg, rgba(8, 9, 13, 0.92), rgba(8, 9, 13, 0.62) 48%, rgba(8, 9, 13, 0.28)),
+      linear-gradient(0deg, var(--bg), transparent 38%);
+  }
+
+  .episode-hero .container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .episode-hero img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  h1 {
+    max-width: 860px;
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(3rem, 9vw, 7rem);
+    line-height: 0.92;
+    letter-spacing: 0;
+  }
+
+  .subtitle {
+    margin: 0.55rem 0 0;
+    color: var(--gold);
+    font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+  }
+
+  .headphone-note {
+    width: fit-content;
+    margin-top: 1.5rem;
+    border: 1px solid rgba(210, 170, 99, 0.42);
+    border-radius: 8px;
+    padding: 0.75rem 0.9rem;
+    background: rgba(8, 9, 13, 0.72);
+    color: var(--text);
+    font-weight: 800;
+  }
+
+  .scene-flow {
+    width: min(1440px, calc(100% - 24px));
+    margin: 0 auto;
+  }
+
+  .scene-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    align-items: start;
+    gap: clamp(1rem, 2vw, 1.5rem);
+    margin-bottom: clamp(1.25rem, 3vw, 2.5rem);
+  }
+
+  .scene-prose {
+    position: sticky;
+    top: 128px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: clamp(1rem, 2vw, 1.35rem);
+    background: rgba(17, 21, 28, 0.82);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+    font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  }
+
+  .scene-prose p {
+    margin: 0 0 1.2rem;
+  }
+
+  .scene-prose p:last-child {
+    margin-bottom: 0;
+  }
+
+  .scene-prose h2 {
+    margin: 0 0 0.85rem;
+    color: var(--text);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.35rem, 2vw, 1.85rem);
+    line-height: 1.08;
+  }
+
+  .reader-tools {
+    position: sticky;
+    top: 76px;
+    z-index: 4;
+    width: min(1440px, calc(100% - 24px));
+    margin: 0 auto 1rem;
+    pointer-events: none;
+  }
+
+  .dialogue-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  .dialogue-controls label,
+  .dialogue-controls select,
+  .dialogue-controls button {
+    pointer-events: auto;
+  }
+
+  .dialogue-controls label,
+  .dialogue-controls button {
+    color: var(--muted);
+    font-size: 0.84rem;
+    font-weight: 800;
+  }
+
+  .edit-toggle {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid rgba(245, 239, 227, 0.18);
+    border-radius: 8px;
+    padding: 0 0.7rem;
+    background: rgba(8, 9, 13, 0.72);
+  }
+
+  .dialogue-controls select,
+  .dialogue-controls button {
+    min-height: 38px;
+    border: 1px solid rgba(210, 170, 99, 0.48);
+    border-radius: 8px;
+    padding: 0 0.75rem;
+    background: rgba(8, 9, 13, 0.88);
+    color: var(--text);
+    font-weight: 800;
+  }
+
+  .dialogue-controls select {
+    padding-right: 2rem;
+  }
+
+  figure {
+    margin: 0 0 1.4rem;
+    outline: none;
+  }
+
+  .panel-frame {
+    position: relative;
+  }
+
+  .panel-frame img {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+  }
+
+  .dialogue-bubble {
+    position: absolute;
+    z-index: 1;
+    min-width: 108px;
+    border: 2px solid rgba(22, 17, 10, 0.84);
+    border-radius: 18px;
+    padding: clamp(0.45rem, 1.2vw, 0.72rem) clamp(0.55rem, 1.5vw, 0.88rem);
+    background: rgba(255, 251, 241, 0.94);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+    color: #17120b;
+    font-size: clamp(0.72rem, 1.65vw, 1rem);
+    font-weight: 800;
+    line-height: 1.18;
+    opacity: 0;
+    pointer-events: none;
+    touch-action: none;
+    transform: translate(-50%, -50%);
+    transition:
+      opacity 160ms ease,
+      transform 160ms ease;
+  }
+
+  .dialogue-bubble.thought {
+    border-style: dashed;
+    border-radius: 999px;
+    background: rgba(249, 246, 237, 0.9);
+  }
+
+  .dialogue-bubble.narration {
+    border-color: rgba(210, 170, 99, 0.82);
+    border-radius: 6px;
+    background: rgba(20, 17, 13, 0.88);
+    color: var(--text);
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+  }
+
+  .dialogue-bubble::after {
+    position: absolute;
+    bottom: -13px;
+    width: 20px;
+    height: 20px;
+    border-right: 2px solid rgba(22, 17, 10, 0.84);
+    border-bottom: 2px solid rgba(22, 17, 10, 0.84);
+    background: inherit;
+    content: "";
+    transform: rotate(45deg);
+  }
+
+  .dialogue-bubble.tail-left::after {
+    left: 24%;
+  }
+
+  .dialogue-bubble.tail-right::after {
+    right: 24%;
+  }
+
+  .dialogue-bubble.tail-none::after,
+  .dialogue-bubble.narration::after {
+    display: none;
+  }
+
+  .speaker {
+    display: block;
+    margin-bottom: 0.12rem;
+    color: #6f4b11;
+    font-size: 0.72em;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .reader.dialogue-on .dialogue-bubble,
+  .reader.dialogue-hover figure:hover .dialogue-bubble,
+  .reader.dialogue-hover figure:focus .dialogue-bubble,
+  .reader.dialogue-hover figure:focus-within .dialogue-bubble {
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .reader.dialogue-off .dialogue-bubble {
+    display: none !important;
+  }
+
+  .reader.bubble-editing .dialogue-bubble {
+    opacity: 1 !important;
+    pointer-events: auto;
+    cursor: grab;
+    outline: 2px dashed rgba(113, 184, 199, 0.88);
+    outline-offset: 3px;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .reader.bubble-editing .dialogue-bubble.is-dragging {
+    cursor: grabbing;
+    outline-color: var(--gold);
+  }
+
+  figcaption {
+    margin-top: 0.65rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @media (max-width: 680px) {
+    .scene-flow {
+      width: min(920px, calc(100% - 24px));
+    }
+
+    .scene-pair {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .scene-prose {
+      position: static;
+    }
+
+    .reader-tools {
+      top: 64px;
+      margin-bottom: 0.75rem;
+    }
+
+    .dialogue-controls {
+      justify-content: center;
+    }
+
+    .dialogue-bubble {
+      min-width: 86px;
+      border-width: 1px;
+      border-radius: 12px;
+      padding: 0.38rem 0.44rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.26);
+    }
+
+    .dialogue-bubble::after {
+      bottom: -9px;
+      width: 14px;
+      height: 14px;
+      border-width: 1px;
+    }
+  }
+
+  .related {
+    padding: 48px 0 0;
+  }
+</style>

@@ -1,0 +1,126 @@
+---
+import { getCollection } from "astro:content";
+import EpisodeCard from "@components/EpisodeCard.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+
+const episodes = (await getCollection("episodes")).sort(
+  (a, b) => b.data.act - a.data.act || b.data.episode - a.data.episode,
+);
+const latest = episodes[0];
+---
+
+<BaseLayout title="Home">
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Concord archive access granted</p>
+        <h1>A Veil of Void and Fire</h1>
+        <p class="lede">
+          A canonical story portal for illustrated episodes, narration, original music,
+          lore archives, and companion games from the AVVF universe.
+        </p>
+        <div class="button-row">
+          <a class="button primary" href="/read/">Begin Reading</a>
+          <a class="button" href="/projects/">Explore Worlds</a>
+          <a class="button" href="/archives/">Open Archives</a>
+        </div>
+      </div>
+      <img
+        src="/images/act-1/artwork/halcyon-pontiff-arrival.png"
+        alt="Halcyon Pontiff arrival artwork."
+        loading="eager"
+      />
+    </div>
+  </section>
+
+  <section class="section compact">
+    <div class="container">
+      <p class="eyebrow">Latest episode</p>
+      {
+        latest && (
+          <EpisodeCard
+            href={`/read/${latest.slug}/`}
+            title={latest.data.title}
+            subtitle={latest.data.subtitle}
+            summary={latest.data.summary}
+            image={latest.data.heroImage}
+            meta={`Act ${latest.data.act} / Episode ${latest.data.episode}`}
+          />
+        )
+      }
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container grid">
+      <article class="card">
+        <h2>Read</h2>
+        <p>Data-driven episodes with scrolling panels, narration, and future audio cues.</p>
+      </article>
+      <article class="card">
+        <h2>Listen</h2>
+        <p>Soundtracks, ambient collections, and character themes will live here.</p>
+      </article>
+      <article class="card">
+        <h2>Archives</h2>
+        <p>In-universe records, technical papers, character files, and Concord history.</p>
+      </article>
+      <article class="card">
+        <h2>Games</h2>
+        <p>Rules and future digital support for Cipher Breyden and Collatz-Concourse.</p>
+      </article>
+      <article class="card">
+        <h2>Worlds</h2>
+        <p>Jump to related projects, media, lore branches, and companion builds.</p>
+      </article>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    min-height: calc(100svh - 70px);
+    display: flex;
+    align-items: center;
+    padding: 48px 0;
+  }
+
+  .hero-grid {
+    display: grid;
+    align-items: center;
+    grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+    gap: clamp(1.5rem, 5vw, 4rem);
+  }
+
+  h1 {
+    max-width: 760px;
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(3.2rem, 10vw, 7.4rem);
+    line-height: 0.9;
+    letter-spacing: 0;
+  }
+
+  .hero img {
+    width: 100%;
+    max-height: 68vh;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    object-fit: cover;
+  }
+
+  @media (max-width: 860px) {
+    .hero {
+      min-height: auto;
+    }
+
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .hero img {
+      max-height: none;
+    }
+  }
+</style>
